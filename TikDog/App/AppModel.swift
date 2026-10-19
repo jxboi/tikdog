@@ -7,6 +7,8 @@ struct FeedFailure {
     let recovery: Recovery
 }
 
+enum MemberDestination: Equatable { case upload, addDog }
+
 @MainActor @Observable final class AppModel {
     private(set) var repository: any TikDogRepository
     private(set) var snapshot = AppSnapshot()
@@ -28,13 +30,26 @@ struct FeedFailure {
     var toast: String?
     var showAuth = false
     var isUploadPresented = false
+    var isDogCreationPresented = false
+    private(set) var pendingMemberDestination: MemberDestination?
     var focusVideoId: UUID?
     var selectedDog: Dog?
     var selectedOwnDogId: UUID?
     var selectedVideo: Video?
+    var selectedSubmission: Video?
     var pendingActions: Set<String> = []
     var selectedTab: AppTab = .home
     private var toastTask: Task<Void, Never>?
+    private var draftStoreOwnerId: UUID?
+    private var cachedDraftStore: UploadDraftStore?
+    var accountUploadDraftStore: UploadDraftStore? {
+        guard let ownerId = snapshot.userId else { return nil }
+        if draftStoreOwnerId != ownerId || cachedDraftStore == nil {
+            draftStoreOwnerId = ownerId
+            cachedDraftStore = UploadDraftStore(directory: UploadDraftStore.accountDirectory(ownerId: ownerId, isDemo: isDemo))
+        }
+        return cachedDraftStore
+    }
 
     var isDemo: Bool { repository.isDemo }
     var ownDogs: [Dog] { snapshot.dogs.filter { $0.ownerId == snapshot.userId } }
@@ -68,8 +83,16 @@ struct FeedFailure {
         return unavailable
         #else
         let base = URL.documentsDirectory.appendingPathComponent("TikDog", isDirectory: true)
-        if ProcessInfo.processInfo.arguments.contains("--reset-demo") { try? FileManager.default.removeItem(at: base) }
-        return AppModel(repository: DemoRepository(persistenceURL: base.appendingPathComponent("demo.json"), mediaDirectory: base.appendingPathComponent("Media")))
+        if ProcessInfo.processInfo.arguments.contains("--reset-demo") {
+            try? FileManager.default.removeItem(at: base)
+            try? FileManager.default.removeItem(at: UploadDraftStore.accountDirectory(ownerId: DemoContent.ownerId, isDemo: true).deletingLastPathComponent())
+        }
+        var initial = DemoContent.snapshot()
+        if ProcessInfo.processInfo.arguments.contains("--demo-new-member") {
+            initial.userId = UUID(uuidString: "33333333-3333-4333-8333-333333333333")
+            initial.displayName = "Dog person"; initial.activities = []; initial.followingDogIds = []
+        }
+        return AppModel(repository: DemoRepository(persistenceURL: base.appendingPathComponent("demo.json"), mediaDirectory: base.appendingPathComponent("Media"), initialSnapshot: initial))
         #endif
     }
     func load(retryIfChanged: Bool = true) async {
@@ -165,13 +188,31 @@ struct FeedFailure {
         applyLocalChange { $0.merge(dogs: dogs, videos: videos) }
     }
     func dog(for video: Video) -> Dog? { snapshot.dogs.first { $0.id == video.dogId } }
-    @discardableResult func requireMember() -> Bool {
-        guard snapshot.userId != nil else { showAuth = true; return false }
+    @discardableResult func requireMember(resuming destination: MemberDestination? = nil) -> Bool {
+        guard snapshot.userId != nil else {
+            pendingMemberDestination = destination; showAuth = true; return false
+        }
         guard !accountState.isSuspended && !accountState.isDeleting else { errorMessage = accountState.isDeleting ? "Account deletion has started. Open Settings to retry deletion." : "Your account is suspended. You can contact support or delete your account in Settings."; return false }
-        guard accountState.termsVersion == CommunityTerms.version else { showTerms = true; return false }
+        guard accountState.termsVersion == CommunityTerms.version else {
+            pendingMemberDestination = destination; showTerms = true; return false
+        }
         return true
     }
-    func presentUpload() { if requireMember() { isUploadPresented = true } }
+    func presentUpload() { if requireMember(resuming: .upload) { isUploadPresented = true } }
+    func presentDogCreation() { if requireMember(resuming: .addDog) { isDogCreationPresented = true } }
+    func authenticationDidDismiss() {
+        guard snapshot.userId != nil else { pendingMemberDestination = nil; return }
+        resumeMemberDestination()
+    }
+    func resumeMemberDestination() {
+        guard !showAuth, !showTerms, let destination = pendingMemberDestination else { return }
+        guard requireMember(resuming: destination) else { return }
+        pendingMemberDestination = nil
+        switch destination {
+        case .upload: isUploadPresented = true
+        case .addDog: selectedTab = .profile; isDogCreationPresented = true
+        }
+    }
     func signOut() async throws {
         clearAccountData()
         if let backend = repository as? SupabaseRepository { try await backend.signOut() }
@@ -179,14 +220,17 @@ struct FeedFailure {
     }
     private func clearAccountData() {
         sessionEpoch = UUID(); toastTask?.cancel(); toast = nil; showTerms = false; isUploadPresented = false
+        isDogCreationPresented = false; pendingMemberDestination = nil; selectedSubmission = nil
         dataEpoch = UUID(); feedRequests = [:]; loadingFeeds = []
         snapshot = AppSnapshot(); stateRevision = UUID(); accountState = AccountState(); feedIds = [:]; feedFailures = [:]; selectedDog = nil; selectedOwnDogId = nil; selectedVideo = nil
         nextOffsets = [:]; exhausted = []; focusVideoId = nil; showAuth = false; errorMessage = nil
     }
     func deleteAccount() async throws {
         let session = sessionEpoch
+        let drafts = accountUploadDraftStore
         try await repository.deleteAccount()
         guard session == sessionEpoch else { return }
+        try? await drafts?.clear(revision: .max)
         clearAccountData()
         await load()
     }
@@ -301,7 +345,7 @@ struct FeedFailure {
             let latest = try await repository.bootstrap()
             guard epoch == dataEpoch && revision == stateRevision else { return }
             snapshot.activities = latest.activities
-            merge(dogs: latest.dogs)
+            merge(dogs: latest.dogs, videos: latest.videos)
         } catch { if epoch == dataEpoch { handle(error) } }
     }
     func refreshVoting() async {

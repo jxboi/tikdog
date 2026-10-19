@@ -1,4 +1,5 @@
 import SwiftUI
+import TikDogCore
 
 struct LegalDocument: Decodable {
     var title: String
@@ -62,7 +63,7 @@ struct TermsConsentView: View {
                 if let error { Text(error).foregroundStyle(.red) }
                 Button("Continue") { Task {
                     busy = true; defer { busy = false }
-                    do { try await app.repository.acceptTerms(); app.accountState.termsVersion = "2026-10-18"; app.showTerms = false }
+                    do { try await app.repository.acceptTerms(); app.accountState.termsVersion = CommunityTerms.version; app.showTerms = false }
                     catch { self.error = error.localizedDescription }
                 } }.disabled(!agreed || busy).accessibilityIdentifier("acceptTerms")
                 Button("Sign out") { Task { do { try await app.signOut(); app.showTerms = false } catch { self.error = error.localizedDescription } } }.disabled(busy)

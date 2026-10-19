@@ -25,7 +25,9 @@ private final class SupabaseFixtureProtocol: URLProtocol, @unchecked Sendable {
         var data = Data("null".utf8)
         let encoder = JSONEncoder(); encoder.keyEncodingStrategy = .convertToSnakeCase; encoder.dateEncodingStrategy = .iso8601
         do {
-            if url.path == "/auth/v1/token" || url.path == "/auth/v1/verify" {
+            if url.path == "/auth/v1/settings" {
+                data = Data("{\"external\":{\"facebook\":true,\"apple\":false}}".utf8)
+            } else if url.path == "/auth/v1/token" || url.path == "/auth/v1/verify" {
                 if url.host == "facebook.test" {
                     var body = request.httpBody
                     if body == nil, let stream = request.httpBodyStream {
@@ -170,7 +172,14 @@ struct TransportTests {
         #expect(video.playbackPath?.contains("/object/sign/videos/") == true)
         #expect(video.displayThumbnailPath?.contains("/object/sign/thumbnails/") == true)
     }
-    @Test func facebookUsesPKCEAndExchangesTheBoundCodeBeforeSigningIn() async throws {
+    @Test func signInOptionsMatchConfiguredProviders() async throws {
+        let providers = try await repository(host: "guest.test").signInProviders()
+        #expect(providers.facebook)
+        #expect(!providers.apple)
+    }
+
+    @Test(arguments: ["", "#", "#_=_"])
+    func facebookUsesPKCEAndExchangesTheBoundCodeBeforeSigningIn(fragment: String) async throws {
         let repo = repository(host: "facebook.test")
         let authorization = try await repo.beginFacebookSignIn()
         let parts = try #require(URLComponents(url: authorization.url, resolvingAgainstBaseURL: false))
@@ -182,13 +191,13 @@ struct TransportTests {
         #expect(!items.contains(where: { $0.name == "code_verifier" }))
         let challenge = try #require(items.first(where: { $0.name == "code_challenge" })?.value)
         // The fixture accepts the exchange only when its verifier hashes to this challenge.
-        try await repo.completeFacebookSignIn(authorization, callback: URL(string: "tikdog://auth/callback?code=\(challenge)")!)
+        try await repo.completeFacebookSignIn(authorization, callback: URL(string: "tikdog://auth/callback?code=\(challenge)\(fragment)")!)
         #expect(try await repo.bootstrap().userId == DemoContent.ownerId)
         await #expect(throws: TikDogError.self) { try await repo.completeFacebookSignIn(authorization, callback: URL(string: "tikdog://auth/callback?code=replay")!) }
     }
     @Test func facebookCallbacksRejectInjectedTokensAndUnexpectedURLs() async throws {
         let repo = repository(host: "guest.test")
-        for text in ["https://attacker.test/auth/callback?code=x", "tikdog://other/callback?code=x", "tikdog://auth/recovery?code=x", "tikdog://auth/callback#access_token=injected", "tikdog://auth/callback?code=x&code=y", "tikdog://auth/callback?code=", "tikdog://user@auth/callback?code=x", "tikdog://auth:42/callback?code=x", "tikdog://auth/callback?error=access_denied&code=x"] {
+        for text in ["https://attacker.test/auth/callback?code=x", "tikdog://other/callback?code=x", "tikdog://auth/recovery?code=x", "tikdog://auth/callback#access_token=injected", "tikdog://auth/callback?code=x#access_token=injected", "tikdog://auth/callback?code=x#_=_&access_token=injected", "tikdog://auth/callback?code=x#code=injected", "tikdog://auth/callback?code=x&code=y", "tikdog://auth/callback?code=", "tikdog://user@auth/callback?code=x", "tikdog://auth:42/callback?code=x", "tikdog://auth/callback?error=access_denied&code=x"] {
             let authorization = try await repo.beginFacebookSignIn()
             await #expect(throws: TikDogError.self) { try await repo.completeFacebookSignIn(authorization, callback: URL(string: text)!) }
         }

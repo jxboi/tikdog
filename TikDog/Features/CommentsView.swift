@@ -55,7 +55,7 @@ struct CommentsView: View {
     var body: some View {
         @Bindable var model = model
         VStack(spacing: 0) {
-            HStack { Text("A little love for \(app.dog(for: video)?.name ?? "this dog")").scaledFont(size: 19, weight: .bold, design: .rounded, relativeTo: .headline).lineLimit(2); Spacer(); Text("\(model.comments.count)").font(.caption.bold()).foregroundStyle(Color.dogMuted); Button { dismiss() } label: { Image(systemName: "xmark").font(.system(size: 12, weight: .semibold)).frame(width: 32, height: 32).background(.black.opacity(0.04), in: Circle()).frame(width: 44, height: 44) }.accessibilityLabel("Close comments") }.padding(24)
+            HStack { Text("Comments").scaledFont(size: 19, weight: .bold, design: .rounded, relativeTo: .headline).lineLimit(2); Spacer(); Text("\(model.comments.count)").font(.caption.bold()).foregroundStyle(Color.dogMuted); Button { dismiss() } label: { Image(systemName: "xmark").font(.system(size: 12, weight: .semibold)).frame(width: 32, height: 32).background(.black.opacity(0.04), in: Circle()).frame(width: 44, height: 44) }.accessibilityLabel("Close comments") }.padding(24)
             if model.isLoading { ProgressView().frame(maxHeight: .infinity) }
             else if model.comments.isEmpty && model.error != nil {
                 VStack(spacing: 12) {
