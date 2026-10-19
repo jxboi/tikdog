@@ -21,7 +21,7 @@ import XCTest
         app.buttons["Post comment"].tap()
         XCTAssertTrue(app.staticTexts["Certified good dog!"].waitForExistence(timeout: 5))
         app.buttons["Close comments"].tap(); app.buttons["tab-discover"].tap()
-        XCTAssertTrue(app.staticTexts["Find your pack."].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Discover"].waitForExistence(timeout: 5))
     }
     func testSearchVoteAndProfile() throws {
         let app = launch(); app.buttons["tab-discover"].tap()
@@ -29,7 +29,7 @@ import XCTest
         search.tap(); search.typeText("Shiba")
         XCTAssertTrue(app.staticTexts["Mochi"].firstMatch.waitForExistence(timeout: 5))
         app.buttons["Clear search"].tap(); app.swipeDown()
-        app.buttons["dailyVoteHero"].tap()
+        app.buttons["dailyVoteEntry"].tap()
         let vote = app.buttons["vote-cabby"]; XCTAssertTrue(vote.waitForExistence(timeout: 5)); vote.tap()
         XCTAssertTrue(app.buttons["Voted ✓"].waitForExistence(timeout: 5))
         app.buttons["Done"].tap(); app.buttons["tab-profile"].tap()
@@ -67,6 +67,7 @@ import XCTest
         normal.terminate()
 
         let app = launch(contentSize: "UICTContentSizeCategoryAccessibilityXXXL")
+        save(app, name: "Large-text-feed")
         app.buttons["Open comments"].firstMatch.tap()
         XCTAssertTrue(app.staticTexts[message].waitForExistence(timeout: 5))
         XCTAssertGreaterThan(app.staticTexts["1"].firstMatch.frame.height, normalCountHeight * 1.4)
@@ -83,20 +84,35 @@ import XCTest
         XCTAssertTrue(app.buttons["Interactions"].isSelected)
         XCTAssertTrue(app.staticTexts["Milo's person: That little face! 🥹"].exists)
         save(app, name: "Large-text-activity")
+        app.buttons["tab-discover"].tap()
+        let search = app.textFields["dogSearch"]
+        XCTAssertTrue(search.waitForExistence(timeout: 5)); XCTAssertTrue(search.isHittable)
+        save(app, name: "Large-text-discover")
+        search.tap(); search.typeText("Mochi\n")
+        let dog = app.buttons.containing(.staticText, identifier: "Mochi").firstMatch
+        XCTAssertTrue(dog.waitForExistence(timeout: 5)); XCTAssertTrue(dog.isHittable)
+        dog.tap(); XCTAssertTrue(app.buttons["Close profile"].waitForExistence(timeout: 5))
+        save(app, name: "Large-text-profile")
+        app.buttons["Close profile"].tap(); app.buttons["tab-upload"].tap()
+        let choose = app.buttons["Choose a video"]
+        XCTAssertTrue(choose.waitForExistence(timeout: 5))
+        if !choose.isHittable || choose.frame.maxY > app.frame.maxY - 100 { app.swipeUp() }
+        XCTAssertTrue(choose.isHittable)
+        save(app, name: "Large-text-upload")
     }
     func testSearchTrimsWhitespaceAndDismissesKeyboardOnSubmit() throws {
         let app = launch(); app.buttons["tab-discover"].tap()
         let search = app.textFields["dogSearch"]
         search.tap(); search.typeText("   ")
-        XCTAssertTrue(app.buttons["dailyVoteHero"].exists)
+        XCTAssertTrue(app.buttons["dailyVoteEntry"].exists)
         app.buttons["Clear search"].tap()
         search.tap(); search.typeText("  Shiba  \n")
         XCTAssertTrue(app.staticTexts["Mochi"].firstMatch.waitForExistence(timeout: 5))
-        XCTAssertFalse(app.buttons["dailyVoteHero"].exists)
+        XCTAssertFalse(app.buttons["dailyVoteEntry"].exists)
         XCTAssertFalse(app.keyboards.firstMatch.exists)
         save(app, name: "Search-results")
         app.buttons["Clear search"].tap()
-        XCTAssertTrue(app.buttons["dailyVoteHero"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["dailyVoteEntry"].waitForExistence(timeout: 5))
     }
     func testProfileEditsCanBeKeptOrExplicitlyDiscarded() throws {
         let app = launch(); app.buttons["tab-profile"].tap(); app.buttons["editDog"].tap()
@@ -140,7 +156,7 @@ import XCTest
         name.tap(); name.typeText("Pepper")
         breed.tap(); breed.typeText("Rescue mix")
         app.swipeUp()
-        let create = app.buttons["Welcome to the pack"]
+        let create = app.buttons["saveDogProfile"]
         XCTAssertTrue(create.waitForExistence(timeout: 5)); XCTAssertTrue(create.isEnabled); create.tap()
         XCTAssertTrue(app.buttons["packMenu"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Pepper"].waitForExistence(timeout: 5))
@@ -180,6 +196,43 @@ import XCTest
         app.buttons["tab-home"].tap()
         XCTAssertTrue(app.scrollViews["videoFeed"].waitForExistence(timeout: 5))
         XCTAssertFalse(app.staticTexts["My first TikDog adventure"].exists)
+    }
+    func testFirstPostCreatesDogAndRestoresDraftAfterRelaunch() throws {
+        let app = XCUIApplication()
+        app.launchArguments = ["--demo", "--reset-demo", "--demo-new-member"]
+        app.launch()
+        XCTAssertTrue(app.buttons["tab-upload"].waitForExistence(timeout: 15)); app.buttons["tab-upload"].tap()
+        let addDog = app.buttons["uploadDogSetup"]
+        XCTAssertTrue(addDog.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["Choose a video"].exists)
+        addDog.tap(); app.buttons["Cancel"].tap()
+        XCTAssertTrue(addDog.waitForExistence(timeout: 5)); addDog.tap()
+        let saveDog = app.buttons["saveDogProfile"]
+        XCTAssertFalse(saveDog.isEnabled)
+        app.textFields["dogNameInput"].tap(); app.textFields["dogNameInput"].typeText("Pepper")
+        XCTAssertFalse(saveDog.isEnabled)
+        app.textFields["dogBreedInput"].tap(); app.textFields["dogBreedInput"].typeText("Unknown")
+        app.swipeUp(); XCTAssertTrue(saveDog.isEnabled); saveDog.tap()
+        XCTAssertTrue(app.buttons["useDemoClip"].waitForExistence(timeout: 5)); app.buttons["useDemoClip"].tap()
+        let caption = app.descendants(matching: .any).matching(identifier: "uploadCaption").firstMatch
+        XCTAssertTrue(caption.waitForExistence(timeout: 10)); caption.tap(); caption.typeText("Pepper's first post")
+        app.buttons["Close upload"].tap(); app.buttons["Save draft and close"].tap()
+        XCTAssertTrue(app.buttons["tab-upload"].waitForExistence(timeout: 5))
+        app.terminate(); app.launchArguments = ["--demo", "--demo-new-member"]; app.launch()
+        XCTAssertTrue(app.buttons["tab-upload"].waitForExistence(timeout: 15)); app.buttons["tab-upload"].tap()
+        let resume = app.buttons["continueUploadDraft"]
+        XCTAssertTrue(resume.waitForExistence(timeout: 5)); save(app, name: "First-post-saved-draft"); resume.tap()
+        XCTAssertTrue(caption.waitForExistence(timeout: 10)); XCTAssertEqual(caption.value as? String, "Pepper's first post")
+        app.swipeUp(); app.buttons["publishVideo"].tap()
+        XCTAssertTrue(app.buttons["uploadSuccess"].waitForExistence(timeout: 60))
+        XCTAssertTrue(app.staticTexts["submissionVisibility"].exists)
+        save(app, name: "First-post-submitted"); app.buttons["uploadSuccess"].tap()
+        XCTAssertTrue(app.staticTexts["Pepper"].waitForExistence(timeout: 5))
+        let submission = app.buttons["Play Pepper's first post"]
+        XCTAssertTrue(submission.exists); submission.tap()
+        XCTAssertTrue(app.staticTexts["submissionDetailStatus"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Dog and video in review"].exists)
+        save(app, name: "First-post-review-status")
     }
     func testUploadDraftCanBeKeptOrExplicitlyDiscarded() throws {
         let app = launch(); app.buttons["tab-upload"].tap(); app.buttons["useDemoClip"].tap()
@@ -259,7 +312,7 @@ import XCTest
         app.buttons["Privacy policy"].tap()
         XCTAssertTrue(app.staticTexts["Who operates TikDog"].waitForExistence(timeout: 5))
         save(app, name: "06-Privacy")
-        app.buttons["The little details"].tap()
+        app.navigationBars["Privacy policy"].buttons["Settings"].tap()
         app.buttons["Contact & support"].tap()
         XCTAssertTrue(app.staticTexts["Contact us"].waitForExistence(timeout: 5))
     }
@@ -298,7 +351,9 @@ import XCTest
         XCTAssertFalse(app.textFields["Email address"].exists); XCTAssertEqual(app.secureTextFields.count, 0)
         XCTAssertFalse(app.buttons["Forgot your password?"].exists)
         app.switches["signupConsent"].tap()
-        XCTAssertTrue(facebook.isEnabled); XCTAssertTrue(apple.isEnabled)
+        let available = XCTNSPredicateExpectation(predicate: NSPredicate(format: "enabled == true"), object: facebook)
+        XCTAssertEqual(XCTWaiter.wait(for: [available], timeout: 10), .completed)
+        XCTAssertFalse(apple.isEnabled); XCTAssertTrue(app.staticTexts["appleUnavailable"].exists)
         save(app, name: "08-Social-sign-in")
         app.buttons["Continue as guest"].tap()
         XCTAssertTrue(join.waitForExistence(timeout: 5))
@@ -316,14 +371,24 @@ import XCTest
         app.buttons["tab-discover"].tap()
         guard app.staticTexts["The pack is growing"].waitForExistence(timeout: 5) else { throw XCTSkip("Requires an empty public dog directory") }
         XCTAssertFalse(app.staticTexts["No tails found"].exists)
-        app.buttons["Meet my dog"].tap()
-        XCTAssertTrue(app.buttons["Join the pack"].waitForExistence(timeout: 5))
+        app.buttons["Add my dog"].tap()
+        XCTAssertTrue(app.buttons["facebookSignIn"].waitForExistence(timeout: 5))
+        app.buttons["Continue as guest"].tap()
+        XCTAssertTrue(app.staticTexts["The pack is growing"].waitForExistence(timeout: 5))
     }
     func testCaptureScreenshots() throws {
         let app = launch()
         sleep(3)
         save(app, name: "01-Feed")
         app.buttons["tab-discover"].tap(); sleep(1); save(app, name: "02-Discover")
+        let tag = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "#")).firstMatch
+        XCTAssertTrue(tag.exists); tag.tap()
+        let clip = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "Play ")).firstMatch
+        XCTAssertTrue(clip.waitForExistence(timeout: 5)); clip.tap()
+        XCTAssertTrue(app.buttons["Close video"].waitForExistence(timeout: 5)); app.buttons["Close video"].tap()
+        XCTAssertTrue(app.buttons["Done"].waitForExistence(timeout: 5)); app.buttons["Done"].tap()
+        app.buttons["dailyVoteEntry"].tap(); save(app, name: "Voting"); app.buttons["Done"].tap()
+        app.buttons["tab-activity"].tap(); save(app, name: "Activity")
         app.buttons["tab-profile"].tap(); sleep(1); save(app, name: "03-Profile")
         app.buttons["tab-upload"].tap(); sleep(1); save(app, name: "04-Upload")
     }

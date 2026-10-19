@@ -48,7 +48,7 @@ set request.jwt.claim.role='';
 set request.jwt.claim.sub = '11111111-1111-4111-8111-111111111111';
 set role authenticated;
 select public.test_assert((select count(*) from public.bookmarks)=0,'bookmarks are private');
-select public.test_assert((select count(*) from public.notifications)=3,'interaction notifications');
+select public.test_assert((select count(*) from public.notifications where kind in('like','comment','follow'))=3,'interaction notifications');
 select public.read_activity();
 select public.test_assert((select bool_and(is_read) from public.notifications),'mark activity read');
 select public.report_video('10000000-0000-4000-8000-000000000002','inappropriate');

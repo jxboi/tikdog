@@ -2,6 +2,35 @@ import Foundation
 
 public enum ContentStatus: String, Codable, Sendable { case pending, ready, hidden }
 
+public enum SubmissionVisibility: Equatable, Sendable {
+    case publicVideo, profileInReview, videoInReview, bothInReview, removed
+    public init(video: ContentStatus, dog: ContentStatus) {
+        if video == .hidden || dog == .hidden { self = .removed }
+        else if video == .pending && dog == .pending { self = .bothInReview }
+        else if dog == .pending { self = .profileInReview }
+        else if video == .pending { self = .videoInReview }
+        else { self = .publicVideo }
+    }
+    public var title: String {
+        switch self {
+        case .publicVideo: "Public"
+        case .profileInReview: "Dog profile in review"
+        case .videoInReview: "Video in review"
+        case .bothInReview: "Dog and video in review"
+        case .removed: "Removed from public view"
+        }
+    }
+    public var explanation: String {
+        switch self {
+        case .publicVideo: "Your dog's profile and this video have been approved. Everyone can see this video."
+        case .profileInReview: "Your video is approved. Only you can see it until your dog's profile is approved too."
+        case .videoInReview: "Your dog's profile is approved. Only you can see this video until its review is complete."
+        case .bothInReview: "Only you can see this submission until your dog's profile and this video are both approved."
+        case .removed: "This dog profile or video was removed from public view. Read the community guidelines before editing your profile or submitting a new video."
+        }
+    }
+}
+
 public struct Dog: Identifiable, Codable, Hashable, Sendable {
     public var id: UUID
     public var ownerId: UUID

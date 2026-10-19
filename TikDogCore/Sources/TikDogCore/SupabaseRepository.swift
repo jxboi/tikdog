@@ -29,6 +29,11 @@ public struct FacebookAuthorization: Sendable {
     public let url: URL
 }
 
+public struct SignInProviders: Equatable, Sendable {
+    public let facebook: Bool
+    public let apple: Bool
+}
+
 public actor SupabaseRepository: TikDogRepository {
     public nonisolated let isDemo = false
     private let config: SupabaseConfiguration
@@ -128,6 +133,12 @@ public actor SupabaseRepository: TikDogRepository {
         let bearer = try await token()
         _ = try await raw(path: "rest/v1/rpc/\(name)", method: "POST", body: JSONSerialization.data(withJSONObject: parameters), bearer: bearer)
     }
+    public func signInProviders() async throws -> SignInProviders {
+        struct Settings: Decodable { let external: [String: Bool] }
+        let data = try await raw(path: "auth/v1/settings", bearer: config.publishableKey)
+        let settings = try Self.decoder().decode(Settings.self, from: data)
+        return SignInProviders(facebook: settings.external["facebook"] == true, apple: settings.external["apple"] == true)
+    }
     public func beginFacebookSignIn() throws -> FacebookAuthorization {
         let verifier = Self.base64URL(Data((0..<32).map { _ in UInt8.random(in: .min ... .max) }))
         let challenge = Self.base64URL(Data(SHA256.hash(data: Data(verifier.utf8))))
@@ -154,7 +165,9 @@ public actor SupabaseRepository: TikDogRepository {
         pendingFacebook = nil
         do {
             guard callback.scheme == "tikdog", callback.host == "auth", callback.path == "/callback",
-                  callback.user == nil, callback.password == nil, callback.port == nil, callback.fragment == nil,
+                  callback.user == nil, callback.password == nil, callback.port == nil,
+                  // Facebook's #_=_ marker can survive the browser's redirect chain.
+                  [nil, "", "_=_"].contains(callback.fragment),
                   let parts = URLComponents(url: callback, resolvingAgainstBaseURL: false) else {
                 throw TikDogError.invalidInput("The sign-in response was invalid. Please try again.")
             }

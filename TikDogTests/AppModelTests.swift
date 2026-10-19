@@ -3,6 +3,46 @@ import TikDogCore
 @testable import TikDog
 
 @MainActor final class AppModelTests: XCTestCase {
+    func testGuestUploadResumesOnceAfterAuthentication() {
+        let app = AppModel(repository: DemoRepository())
+        app.presentUpload()
+        XCTAssertTrue(app.showAuth)
+        XCTAssertFalse(app.isUploadPresented)
+        app.applyLocalChange { $0.userId = DemoContent.ownerId }
+        app.accountState.termsVersion = CommunityTerms.version
+        app.showAuth = false
+        app.authenticationDidDismiss()
+        XCTAssertTrue(app.isUploadPresented)
+        XCTAssertNil(app.pendingMemberDestination)
+        app.isUploadPresented = false
+        app.authenticationDidDismiss()
+        XCTAssertFalse(app.isUploadPresented)
+    }
+
+    func testCanceledAuthenticationDoesNotResumeAnOldUpload() {
+        let app = AppModel(repository: DemoRepository())
+        app.presentUpload(); app.showAuth = false; app.authenticationDidDismiss()
+        app.applyLocalChange { $0.userId = DemoContent.ownerId }
+        app.accountState.termsVersion = CommunityTerms.version
+        app.authenticationDidDismiss()
+        XCTAssertFalse(app.isUploadPresented)
+        XCTAssertNil(app.pendingMemberDestination)
+    }
+
+    func testDogCreationResumesAfterTermsAndDoesNotForceViewersToCreateADog() {
+        let app = AppModel(repository: DemoRepository())
+        app.applyLocalChange { $0.userId = DemoContent.ownerId }
+        app.presentDogCreation()
+        XCTAssertTrue(app.showTerms)
+        XCTAssertFalse(app.isDogCreationPresented)
+        app.accountState.termsVersion = CommunityTerms.version; app.showTerms = false
+        app.resumeMemberDestination()
+        XCTAssertTrue(app.isDogCreationPresented)
+        app.isDogCreationPresented = false
+        XCTAssertTrue(app.requireMember())
+        XCTAssertFalse(app.isDogCreationPresented)
+    }
+
     func testSuccessfulDeletionClearsPrivateStateEvenWhenGuestRefreshFails() async throws {
         let delay = DeferredBootstrap()
         let repository = DeferredRepository(bootstrapDelay: delay)

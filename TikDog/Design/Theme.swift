@@ -5,7 +5,7 @@ extension Color {
     static let dogOrange = Color(red: 1, green: 136/255, blue: 77/255)
     static let dogCream = Color(red: 250/255, green: 248/255, blue: 244/255)
     static let dogInk = Color(red: 33/255, green: 32/255, blue: 29/255)
-    static let dogMuted = Color(red: 126/255, green: 123/255, blue: 116/255)
+    static let dogMuted = Color(red: 104/255, green: 101/255, blue: 95/255)
 }
 @MainActor enum Haptics {
     static func selection() { UISelectionFeedbackGenerator().selectionChanged() }
@@ -27,21 +27,22 @@ extension View {
     }
 }
 struct PrimaryButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
     var dark = false
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label.font(.system(size: 15, weight: .bold)).frame(maxWidth: .infinity).padding(.vertical, 16)
+        configuration.label.font(.body.weight(.semibold)).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true).frame(maxWidth: .infinity).padding(.vertical, 16)
             .foregroundStyle(dark ? .white : Color.dogInk).background(dark ? Color.dogInk : Color.dogOrange, in: RoundedRectangle(cornerRadius: 18))
+            .opacity(isEnabled ? 1 : 0.45)
             .scaleEffect(configuration.isPressed ? 0.97 : 1).animation(.easeOut(duration: 0.15), value: configuration.isPressed)
     }
 }
 struct DogAvatar: View {
     let dog: Dog
     var size: CGFloat = 48
-    var ring = false
     var body: some View {
         MediaImage(path: dog.displayAvatarPath ?? dog.avatarPath, contentMode: .fill)
             .frame(width: size, height: size).background(Color.dogOrange.opacity(0.2)).clipShape(Circle())
-            .overlay(Circle().strokeBorder(ring ? Color.dogOrange : .white.opacity(0.7), lineWidth: ring ? 2.5 : 1.5))
+            .overlay(Circle().strokeBorder(.white.opacity(0.7), lineWidth: 1.5))
             .accessibilityLabel("\(dog.name)'s profile photo")
     }
 }
@@ -63,16 +64,6 @@ struct MediaImage: View {
         return UIImage(named: path)
     }
     private var placeholder: some View { Rectangle().fill(Color.dogOrange.opacity(0.15)).overlay { Image(systemName: "pawprint.fill").font(.title).foregroundStyle(Color.dogOrange) } }
-}
-struct SectionLabel: View {
-    let title: String
-    var eyebrow: String? = nil
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            if let eyebrow { Text(eyebrow.uppercased()).scaledFont(size: 10, weight: .bold, design: .monospaced, relativeTo: .caption2).tracking(2).foregroundStyle(Color.dogMuted) }
-            Text(title).scaledFont(size: 25, weight: .bold, design: .rounded, relativeTo: .title2).tracking(-0.7).foregroundStyle(Color.dogInk)
-        }
-    }
 }
 extension Int {
     var compactCount: String { if self >= 1_000_000 { return String(format: "%.1fM", Double(self)/1_000_000).replacingOccurrences(of: ".0", with: "") }; if self >= 1000 { return String(format: "%.1fK", Double(self)/1000).replacingOccurrences(of: ".0", with: "") }; return String(self) }
