@@ -1,0 +1,13 @@
+{
+  "backend_url": "",
+  "bundle_id": "com.tikdog.app",
+  "config_sha256": "Set to the SHA-256 of release/config.json after configuration",
+  "live_backend": { "passed": false, "evidence": "" },
+  "apple_signin_and_revocation": { "passed": false, "evidence": "" },
+  "facebook_signin_and_deletion": { "passed": false, "evidence": "" },
+  "physical_device_camera_and_permissions": { "passed": false, "evidence": "" },
+  "testflight_install": { "passed": false, "evidence": "" },
+  "moderation_staffed": { "passed": false, "evidence": "" },
+  "privacy_labels_and_age_rating": { "passed": false, "evidence": "" },
+  "audit_retention_job": { "passed": false, "evidence": "" }
+}

@@ -1,0 +1,93 @@
+{
+  "privacy": {
+    "title": "Privacy policy",
+    "sections": [
+      [
+        "Who operates TikDog",
+        "TikDog is operated by {operator_name}. Contact {support_email} for privacy questions, access, correction, deletion, or a complaint. This policy takes effect on October 18, 2026."
+      ],
+      [
+        "Information we collect",
+        "We receive your name, email address and provider account identifier when you choose Facebook or Apple sign-in. Facebook may also provide your profile picture. Sign in with Apple may provide a private relay address. Supabase manages your TikDog identity and session; TikDog does not ask for or store your Facebook or Apple password. We collect the dog profiles, photos, videos (including recorded sound), captions, hashtags, and comments you choose to submit. We also store likes, follows, bookmarks, votes, content reports, terms acceptance, and account status to run the community. Avoid sharing personal or sensitive information in public content."
+      ],
+      [
+        "How we use information",
+        "We use this information to authenticate accounts, display approved content, save your choices, rank videos using engagement and recency, prevent abuse, moderate contributions, and respond to requests. Camera and microphone access is used when you record; the system photo picker provides only items you select. We do not request contacts or location. We do not sell personal information, use advertising SDKs, or track you across other companies' apps or websites."
+      ],
+      [
+        "Visibility and sharing",
+        "Approved dog profiles, videos, comments, and aggregate engagement counts are visible to everyone, including guests. Your bookmarks, email address, content reports, and blocked-account list are private. Pending content is available to its owner and authorized moderators. Media uses private storage with access links that expire after 15 minutes; people can still save or share copies they can access. Blocking hides accounts within TikDog; it cannot recall saved copies or immediately invalidate existing access links."
+      ],
+      [
+        "Service providers",
+        "Supabase hosts authentication, application data, and uploaded media on our behalf. Hosting infrastructure processes network information, such as IP addresses and technical logs, for delivery and security. Apple or Meta processes your chosen social sign-in. TikDog uses Facebook only for authentication, without the Facebook advertising or analytics SDK. These providers process data according to their service terms and privacy protections. We may disclose information to comply with applicable obligations or protect people and animals from harm. Data may be processed outside your country depending on the configured hosting region."
+      ],
+      [
+        "Retention and deletion",
+        "Account content and engagement remain until you remove them or delete your account, unless content is removed through moderation. Start account deletion in Profile > Settings > Delete account. Deletion first disables new contributions, revokes stored Apple authorization when applicable, removes uploaded media, and deletes the account and associated profiles, comments, reports, and engagement. If a service interruption prevents completion, the account remains disabled and deletion can be retried. Moderation audit entries contain the content identifier, action, reason, and moderator identifier, without retaining deleted media or comment text; we remove these entries after 90 days. Provider security logs and backup copies follow the hosting provider's retention settings; deleted material is not restored to active use. Copies saved by other people are outside our control."
+      ],
+      [
+        "Your choices",
+        "Browse as a guest, decline camera or microphone permission, choose which photos to share, remove your own videos, block accounts, sign out, or delete your account. For access, correction, export, or another privacy request, contact {support_email}. Your local rights may also allow a complaint to your data protection authority."
+      ],
+      [
+        "Age and policy updates",
+        "TikDog is intended for people aged 16 and over and is not a children's service. Contact us if you believe a child has supplied information. We publish changes here and ask you to accept revised terms when required."
+      ]
+    ]
+  },
+  "terms": {
+    "title": "Terms of use",
+    "sections": [
+      [
+        "Agreement and eligibility",
+        "TikDog is provided by {operator_name}. You must be at least 16 years old and agree to these terms and the privacy policy before creating an account or contributing. You are responsible for securing your account and for the content you submit. These terms take effect on October 18, 2026."
+      ],
+      [
+        "Dogs first. Always.",
+        "We prohibit animal cruelty, dangerous stunts, sexual or graphic content, threats, hate, harassment, bullying, spam, scams, illegal activity, and disclosure of another person's private information without permission. Never frighten, injure, restrain dangerously, or put an animal at risk for a video. Do not encourage others to do so."
+      ],
+      [
+        "Your content and permissions",
+        "Upload only content you created or have permission to use, including the video, photographs, music, and other people's appearances. Obtain the dog's owner's permission. You retain ownership and give TikDog permission to host, process, moderate, and display your submissions to provide the service. This permission ends when the content is deleted, subject to copies already shared and limited backup retention described in the privacy policy."
+      ],
+      [
+        "Moderation and reporting",
+        "New videos, comments, profile photos, names, breeds, and bios are held for human review before appearing publicly. We may reject or remove contributions and suspend abusive accounts. Use the options on a video, profile, or comment to report content or block its owner. Reports hide the reported content for you immediately. We aim to review reports within 24 hours. For urgent safety, copyright, privacy, or moderation appeals, contact {support_email} and identify the affected content. Do not send passwords or secret keys."
+      ],
+      [
+        "Account choices",
+        "You may remove your videos and initiate account deletion inside Settings. You may stop using TikDog at any time. Suspended accounts can still request deletion and contact support. Blocking restricts interactions inside TikDog; it cannot revoke copies saved outside the service."
+      ],
+      [
+        "Service and responsibility",
+        "TikDog provides entertainment and community features. We work to keep it available and safe but do not promise uninterrupted operation or that all user submissions are accurate. Do not rely on videos as veterinary advice. Nothing in these terms excludes rights or responsibilities that applicable consumer law does not allow us to exclude."
+      ],
+      [
+        "Contact and changes",
+        "Contact {operator_name} at {support_email}. Policies and support are available at {website_url}. If these terms materially change, we will publish the updated version and request renewed acceptance before further contributions."
+      ]
+    ]
+  },
+  "support": {
+    "title": "TikDog support",
+    "sections": [
+      [
+        "Contact us",
+        "Email {support_email}. TikDog is operated by {operator_name}. Include a description of the issue and the affected dog or video; never include your password."
+      ],
+      [
+        "Report unsafe content",
+        "Open the options on the video, comment, or dog profile and choose Report. You can also block an account from those options. Reports hide content for you immediately. We aim to review reports within 24 hours. For urgent animal-safety concerns, also contact the appropriate local animal welfare service."
+      ],
+      [
+        "Manage your account",
+        "Sign in with Facebook or Apple. TikDog has no separate email/password account or password-reset flow. Recover access through your chosen provider. Open Profile > Settings to manage blocked accounts, read policies, sign out, or delete your TikDog account. Deleting TikDog does not delete your Facebook or Apple account. If you cannot access the app, contact {support_email} for help with a data-deletion request."
+      ],
+      [
+        "Privacy, copyright, and appeals",
+        "Email {support_email} for privacy requests, a copyright complaint, or an appeal. Identify the content, describe the concern, and provide a way to contact you."
+      ]
+    ]
+  }
+}

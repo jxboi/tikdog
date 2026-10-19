@@ -1,0 +1,7 @@
+# Add the social callback while existing providers remain available. Undeclared settings remain unchanged.
+# Run with --workdir supabase/operations/native-auth and --project-ref.
+project_id = "tikdog-native-auth"
+
+[auth]
+additional_redirect_urls = ["tikdog://auth/confirm", "tikdog://auth/recovery", "tikdog://auth/callback"]
+

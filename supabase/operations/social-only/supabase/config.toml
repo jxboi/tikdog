@@ -1,0 +1,8 @@
+# Apply only after Facebook and Apple have both been verified on hardware.
+project_id = "tikdog-social-only"
+
+[auth]
+additional_redirect_urls = ["tikdog://auth/callback"]
+
+[auth.email]
+enable_signup = false

@@ -1,0 +1,6 @@
+// Generated from release/config.json by scripts/prepare_release.py.
+TIKDOG_OPERATOR_NAME = 
+TIKDOG_SUPPORT_EMAIL = 
+TIKDOG_PRIVACY_URL = 
+TIKDOG_TERMS_URL = 
+TIKDOG_SUPPORT_URL = 

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>CFBundleDisplayName</key><string>TikDog</string>
+<key>CFBundleExecutable</key><string>$(EXECUTABLE_NAME)</string>
+<key>CFBundleIdentifier</key><string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+<key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
+<key>CFBundleName</key><string>$(PRODUCT_NAME)</string>
+<key>CFBundlePackageType</key><string>APPL</string>
+<key>CFBundleShortVersionString</key><string>$(MARKETING_VERSION)</string>
+<key>CFBundleVersion</key><string>$(CURRENT_PROJECT_VERSION)</string>
+<key>LSRequiresIPhoneOS</key><true/>
+<key>UILaunchScreen</key><dict><key>UIColorName</key><string>LaunchBackground</string></dict>
+<key>UIApplicationSceneManifest</key><dict><key>UIApplicationSupportsMultipleScenes</key><false/></dict>
+<key>UISupportedInterfaceOrientations</key><array><string>UIInterfaceOrientationPortrait</string></array>
+<key>NSCameraUsageDescription</key><string>Capture your dog's next big moment for TikDog.</string>
+<key>NSMicrophoneUsageDescription</key><string>Record the happy barks and little sounds in your dog's videos.</string>
+<key>NSPhotoLibraryUsageDescription</key><string>Choose a dog video or profile photo to share with the pack.</string>
+<key>SUPABASE_URL</key><string>$(SUPABASE_URL)</string>
+<key>SUPABASE_PUBLISHABLE_KEY</key><string>$(SUPABASE_PUBLISHABLE_KEY)</string>
+<key>TIKDOG_OPERATOR_NAME</key><string>$(TIKDOG_OPERATOR_NAME)</string>
+<key>TIKDOG_SUPPORT_EMAIL</key><string>$(TIKDOG_SUPPORT_EMAIL)</string>
+<key>TIKDOG_PRIVACY_URL</key><string>$(TIKDOG_PRIVACY_URL)</string>
+<key>TIKDOG_TERMS_URL</key><string>$(TIKDOG_TERMS_URL)</string>
+<key>TIKDOG_SUPPORT_URL</key><string>$(TIKDOG_SUPPORT_URL)</string>
+<key>CFBundleURLTypes</key><array><dict><key>CFBundleURLName</key><string>com.tikdog.auth</string><key>CFBundleURLSchemes</key><array><string>tikdog</string></array></dict></array>
+<key>UIAppFonts</key><array/>
+<key>ITSAppUsesNonExemptEncryption</key><false/>
+</dict></plist>
