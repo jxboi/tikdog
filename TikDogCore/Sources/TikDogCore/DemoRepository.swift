@@ -33,11 +33,11 @@ public actor DemoRepository: TikDogRepository {
     private let persistenceURL: URL?
     private let mediaDirectory: URL?
 
-    public init(persistenceURL: URL? = nil, mediaDirectory: URL? = nil) {
+    public init(persistenceURL: URL? = nil, mediaDirectory: URL? = nil, initialSnapshot: AppSnapshot? = nil) {
         self.persistenceURL = persistenceURL; self.mediaDirectory = mediaDirectory
         if let persistenceURL, let data = try? Data(contentsOf: persistenceURL), let saved = try? JSONDecoder().decode(Persisted.self, from: data) {
             self.state = saved.state; self.commentStore = saved.comments; self.reports = saved.reports
-        } else { self.state = DemoContent.snapshot() }
+        } else { self.state = initialSnapshot ?? DemoContent.snapshot() }
     }
     private struct Persisted: Codable { var state: AppSnapshot; var comments: [UUID: [DogComment]]; var reports: Set<UUID> }
     private func persist() throws {

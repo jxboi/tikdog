@@ -3,6 +3,18 @@ import Testing
 @testable import TikDogCore
 
 struct TikDogCoreTests {
+    @Test func submissionVisibilityRequiresBothApprovals() {
+        #expect(SubmissionVisibility(video: .pending, dog: .pending) == .bothInReview)
+        #expect(SubmissionVisibility(video: .ready, dog: .pending) == .profileInReview)
+        #expect(SubmissionVisibility(video: .pending, dog: .ready) == .videoInReview)
+        #expect(SubmissionVisibility(video: .ready, dog: .ready) == .publicVideo)
+        for status in [ContentStatus.pending, .ready, .hidden] {
+            #expect(SubmissionVisibility(video: .hidden, dog: status) == .removed)
+            #expect(SubmissionVisibility(video: status, dog: .hidden) == .removed)
+        }
+        #expect(SubmissionVisibility.bothInReview.explanation == "Only you can see this submission until your dog's profile and this video are both approved.")
+    }
+
     @Test func hashtagNormalizationAndLimits() {
         #expect(ContentRules.hashtags(from: "#Cavapoo #cavapoo, Walkies #Good_Dog") == ["cavapoo", "walkies", "good_dog"])
         #expect(ContentRules.hashtags(from: (1...15).map { "tag\($0)" }.joined(separator: " ")).count == 8)

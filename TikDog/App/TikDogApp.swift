@@ -41,8 +41,11 @@ struct RootView: View {
         .animation(.easeInOut(duration: 0.2), value: app.toast)
         .preferredColorScheme(app.configurationError == nil && app.selectedTab == .home ? .dark : .light)
         .sheet(isPresented: $app.isUploadPresented) { UploadView().environment(app).preferredColorScheme(.light) }
-        .sheet(isPresented: $app.showAuth) { AuthView().environment(app).preferredColorScheme(.light).presentationDragIndicator(.visible) }
+        .sheet(isPresented: $app.showAuth, onDismiss: app.authenticationDidDismiss) { AuthView().environment(app).preferredColorScheme(.light).presentationDragIndicator(.visible) }
+        .sheet(isPresented: $app.isDogCreationPresented) { DogEditorView(dog: nil) { app.selectedOwnDogId = $0.id } }
+        .sheet(item: $app.selectedSubmission) { SubmissionDetailView(videoId: $0.id) }
         .sheet(isPresented: $app.showTerms) { TermsConsentView() }
+        .onChange(of: app.showTerms) { _, showing in if !showing { app.resumeMemberDestination() } }
         .onChange(of: scenePhase) { _, phase in if phase == .active { Task { await app.load() } } }
         .task {
             while !Task.isCancelled {

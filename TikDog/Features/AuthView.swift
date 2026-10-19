@@ -12,13 +12,15 @@ struct AuthView: View {
     @State private var error: String?
     @State private var nonce = ""
     @State private var consent = false
+    @State private var providers: SignInProviders?
+    @State private var providerError: String?
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 22) {
                     Image(systemName: "pawprint.fill").font(.system(size: 47)).foregroundStyle(Color.dogOrange).rotationEffect(.degrees(-12)).padding(.top, 30)
-                    Text("Their world.\nYou're invited.").font(.system(size: 37, weight: .bold, design: .rounded)).tracking(-1.3).multilineTextAlignment(.center)
-                    Text("Make a little space for your favorite dog.").font(.system(size: 13)).foregroundStyle(Color.dogMuted)
+                    Text("Join TikDog").font(.system(size: 37, weight: .bold, design: .rounded)).tracking(-1.3).multilineTextAlignment(.center)
+                    Text("Follow dogs, leave comments, and share your own videos.").font(.system(size: 13)).foregroundStyle(Color.dogMuted)
                     if app.isDemo {
                         Text("You're exploring the local demo. Facebook and Apple sign-in are available in the connected app.").font(.subheadline).foregroundStyle(Color.dogMuted).multilineTextAlignment(.center).padding()
                         Button("Keep exploring") { dismiss() }.buttonStyle(PrimaryButtonStyle())
@@ -34,25 +36,36 @@ struct AuthView: View {
                             request.nonce = SHA256.hash(data: Data(newNonce.utf8)).map { String(format: "%02x", $0) }.joined()
                         } onCompletion: { result in
                             Task { await apple(result) }
-                        }.signInWithAppleButtonStyle(.black).frame(height: 51).clipShape(RoundedRectangle(cornerRadius: 16)).disabled(busy || !consent).accessibilityIdentifier("appleSignIn")
+                        }.signInWithAppleButtonStyle(.black).frame(height: 51).clipShape(RoundedRectangle(cornerRadius: 16)).disabled(busy || !consent || providers?.apple != true).accessibilityIdentifier("appleSignIn")
+                        if providers?.apple == false { Text("Apple sign-in isn't available yet.").font(.caption).foregroundStyle(Color.dogMuted).accessibilityIdentifier("appleUnavailable") }
                         Button { Task { await facebook() } } label: {
                             HStack(spacing: 12) {
                                 Text("f").font(.system(size: 29, weight: .bold))
                                 Text("Continue with Facebook").font(.system(size: 16, weight: .semibold))
                             }.foregroundStyle(.white).frame(maxWidth: .infinity).frame(height: 51)
                                 .background(Color(red: 0.086, green: 0.467, blue: 1), in: RoundedRectangle(cornerRadius: 16))
-                        }.accessibilityIdentifier("facebookSignIn").accessibilityLabel("Continue with Facebook").disabled(busy || !consent)
+                        }.accessibilityIdentifier("facebookSignIn").accessibilityLabel("Continue with Facebook").disabled(busy || !consent || providers?.facebook != true)
+                        if providers == nil && providerError == nil { ProgressView("Checking sign-in options…").font(.caption) }
+                        if let providerError {
+                            Text(providerError).font(.caption).foregroundStyle(.red)
+                            Button("Check sign-in options again") { Task { await loadProviders() } }
+                        }
                         if busy { ProgressView("Signing in…").font(.caption) }
                         if let error { Text(error).font(.caption).foregroundStyle(.red).multilineTextAlignment(.center).accessibilityIdentifier("authError") }
                     }
-                    Text("Be kind. Keep dogs safe. Make tails wag.").font(.system(size: 10)).foregroundStyle(Color.dogMuted).padding(.top, 6)
                 }.padding(.horizontal, 30).padding(.bottom, 35)
             }.background(Color.dogCream).foregroundStyle(Color.dogInk).navigationBarTitleDisplayMode(.inline)
                 .toolbar { ToolbarItem(placement: .topBarTrailing) { Button { dismiss() } label: { Image(systemName: "xmark").font(.system(size: 14, weight: .semibold)) }.accessibilityLabel("Continue as guest").disabled(busy) } }
-        }.preferredColorScheme(.light).interactiveDismissDisabled(busy).onDisappear { facebookAuthentication.cancel() }
+        }.preferredColorScheme(.light).interactiveDismissDisabled(busy).onDisappear { facebookAuthentication.cancel() }.task { await loadProviders() }
+    }
+    private func loadProviders() async {
+        guard let backend = app.repository as? SupabaseRepository else { return }
+        providerError = nil
+        do { providers = try await backend.signInProviders() }
+        catch { providerError = "Couldn't check sign-in options. Check your connection and try again." }
     }
     private func facebook() async {
-        guard consent, let backend = app.repository as? SupabaseRepository else { return }
+        guard consent, providers?.facebook == true, let backend = app.repository as? SupabaseRepository else { return }
         busy = true; error = nil; defer { busy = false }
         do {
             let authorization = try await backend.beginFacebookSignIn()
@@ -68,7 +81,7 @@ struct AuthView: View {
         catch { self.error = error.localizedDescription }
     }
     private func apple(_ result: Result<ASAuthorization, Error>) async {
-        guard consent, let backend = app.repository as? SupabaseRepository else { return }
+        guard consent, providers?.apple == true, let backend = app.repository as? SupabaseRepository else { return }
         busy = true; error = nil; defer { busy = false }
         do {
             let auth = try result.get()
@@ -87,7 +100,7 @@ struct AuthView: View {
             let state = try await backend.accountState()
             if !state.isSuspended && !state.isDeleting { try await backend.acceptTerms() }
         } catch { await app.load(); app.showTerms = false; throw error }
-        dismiss(); await app.load(); app.notify("Welcome to the pack")
+        await app.load(); app.notify("Welcome to the pack"); dismiss()
     }
     private static func randomNonce() -> String {
         var bytes = [UInt8](repeating: 0, count: 32)

@@ -10,7 +10,7 @@ A native iPhone video community where the dogs have the profiles. Swift 6, Swift
 
 Debug builds automatically start in **demo mode** when Supabase configuration is absent. Cabby, Mochi, Milo, and Luna have bundled, licensed videos, so the feed works offline. The demo signs you in locally as Cabby's person. Likes, follows, comments, bookmarks, dog profiles, daily votes, and uploaded videos persist on this device. Demo accounts and engagement are fictional. Release builds require backend configuration and never fall back to demo mode.
 
-Try the **+** tab → **Try with a demo clip** → add a caption → **Let them shine**. This runs the real trim, H.264 export, thumbnail generation, persistence, and playback flow without a backend.
+Try the **+** tab → **Try with a demo clip** → add a caption → **Post video**. This runs the real trim, H.264 export, thumbnail generation, persistence, and playback flow without a backend.
 
 Debug launch arguments:
 
@@ -19,7 +19,7 @@ Debug launch arguments:
 
 Simulator previews: [Feed](docs/screenshots/01-Feed.png) · [Discover](docs/screenshots/02-Discover.png) · [Profile](docs/screenshots/03-Profile.png) · [Upload](docs/screenshots/04-Upload.png)
 
-The latest local improvements and checks are recorded in [morning polish](docs/MORNING-POLISH.md). Debug and Release builds treat Swift warnings as errors.
+The latest UI changes and checks are recorded in [UI/UX polish](docs/UI-UX-POLISH.md). Earlier improvements are recorded in [morning polish](docs/MORNING-POLISH.md). Debug and Release builds treat Swift warnings as errors.
 
 ## Implemented
 

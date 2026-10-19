@@ -4,14 +4,24 @@ import TikDogCore
 struct ActivityView: View {
     @Environment(AppModel.self) private var app
     @State private var filter = "All"
-    private var items: [ActivityItem] { app.snapshot.activities.filter { filter == "All" || (filter == "Followers" ? $0.kind == "follow" : $0.kind != "follow") } }
+    private var items: [ActivityItem] {
+        app.snapshot.activities.filter {
+            switch filter {
+            case "Followers": $0.kind == "follow"
+            case "Reviews": $0.kind == "review"
+            case "Interactions": $0.kind != "follow" && $0.kind != "review"
+            default: true
+            }
+        }
+    }
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 26) {
-                    SectionLabel(title: "A little love, delivered.", eyebrow: "Your activity")
+                    Text("Activity").scaledFont(size: 32, weight: .bold, design: .rounded, relativeTo: .largeTitle).tracking(-1)
+                    if app.snapshot.userId != nil && !app.snapshot.activities.isEmpty {
                     ScrollView(.horizontal) { HStack(spacing: 9) {
-                        ForEach(["All", "Followers", "Interactions"], id: \.self) { item in
+                        ForEach(["All", "Followers", "Interactions"] + (app.snapshot.activities.contains { $0.kind == "review" } ? ["Reviews"] : []), id: \.self) { item in
                             Button { filter = item } label: {
                                 Text(item).scaledFont(size: 12, weight: .semibold, relativeTo: .caption)
                                     .foregroundStyle(filter == item ? .white : Color.dogMuted)
@@ -20,6 +30,7 @@ struct ActivityView: View {
                             }.accessibilityAddTraits(filter == item ? .isSelected : [])
                         }
                     } }.scrollIndicators(.hidden).accessibilityIdentifier("activityFilters")
+                    }
                     if app.snapshot.userId == nil {
                         EmptyState(icon: "heart", title: "Good things are waiting.", message: "Join the pack to see who's cheering for your dog.")
                         Button("Join the pack") { app.showAuth = true }.buttonStyle(PrimaryButtonStyle())
@@ -27,13 +38,17 @@ struct ActivityView: View {
                     else {
                         VStack(spacing: 0) {
                             ForEach(items) { item in
-                                Button { if let videoId = item.videoId, let video = app.snapshot.videos.first(where: { $0.id == videoId }) { app.selectedVideo = video } else if let dog = app.snapshot.dogs.first(where: { $0.id == item.dogId }) { app.selectedDog = dog } } label: {
+                                Button {
+                                    if let videoId = item.videoId, let video = app.snapshot.videos.first(where: { $0.id == videoId }) {
+                                        if item.kind == "review" { app.selectedSubmission = video } else { app.selectedVideo = video }
+                                    } else if let dog = app.snapshot.dogs.first(where: { $0.id == item.dogId }) { app.selectedDog = dog }
+                                    else { app.notify("This submission is no longer available.") }
+                                } label: {
                                     HStack(alignment: .top, spacing: 14) {
                                         if let dog = app.snapshot.dogs.first(where: { $0.id == item.dogId }) { DogAvatar(dog: dog, size: 49) }
                                         else { Image(systemName: icon(item.kind)).font(.system(size: 20)).foregroundStyle(Color.dogOrange).frame(width: 49, height: 49).background(Color.dogOrange.opacity(0.12), in: Circle()) }
                                         VStack(alignment: .leading, spacing: 7) { Text(item.message).scaledFont(size: 13, weight: .medium).lineSpacing(4).multilineTextAlignment(.leading); Text(item.createdAt, style: .relative).scaledFont(size: 10, relativeTo: .caption2).foregroundStyle(Color.dogMuted) }
                                         Spacer(minLength: 0)
-                                        Image(systemName: icon(item.kind)).font(.system(size: 14)).foregroundStyle(Color.dogOrange).padding(.top, 4)
                                     }.padding(.vertical, 19)
                                 }
                                 if item.id != items.last?.id { Divider().opacity(0.4) }
@@ -45,7 +60,7 @@ struct ActivityView: View {
                 .task { await app.refreshActivity(); await app.markRead() }.refreshable { await app.load(); await app.markRead() }
         }
     }
-    private func icon(_ kind: String) -> String { switch kind { case "follow": "person.badge.plus"; case "comment": "bubble.right.fill"; case "milestone": "sparkles"; default: "heart.fill" } }
+    private func icon(_ kind: String) -> String { switch kind { case "follow": "person.badge.plus"; case "comment": "bubble.right.fill"; case "milestone": "sparkles"; case "review": "checkmark.shield.fill"; default: "heart.fill" } }
 }
 
 struct SettingsView: View {
@@ -67,7 +82,7 @@ struct SettingsView: View {
                         Text(app.snapshot.displayName)
                         if !app.isDemo { Button("Sign out") { Task { await signOut() } }.disabled(deleting) }
                     }
-                    if app.isDemo { Text("Demo changes stay on this device. Add Supabase credentials to connect to the community.").font(.caption).foregroundStyle(Color.dogMuted) }
+                    if app.isDemo { Text("Demo changes stay on this device.").font(.caption).foregroundStyle(Color.dogMuted) }
                 }
                 Section("Made for a kind community") {
                     NavigationLink("Community guidelines & terms") { LegalView(kind: "terms") }
@@ -80,7 +95,7 @@ struct SettingsView: View {
                     Section { Button(role: .destructive) { showDelete = true } label: { if deleting { ProgressView() } else { Text("Delete account") } }.disabled(deleting) } footer: { Text("This removes your dogs, videos, and account data.") }
                 }
                 if let error { Section { Text(error).font(.caption).foregroundStyle(.red) } }
-            }.scrollContentBackground(.hidden).background(Color.dogCream).navigationTitle("The little details").navigationBarTitleDisplayMode(.inline)
+            }.scrollContentBackground(.hidden).background(Color.dogCream).navigationTitle("Settings").navigationBarTitleDisplayMode(.inline)
                 .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Done") { dismiss() }.disabled(deleting) } }
                 .confirmationDialog("Delete your account and all your dogs' content? This can't be undone.", isPresented: $showDelete, titleVisibility: .visible) { Button("Delete account", role: .destructive) { Task { await deleteAccount() } }; Button("Keep my pack", role: .cancel) {} }
                 .interactiveDismissDisabled(deleting)

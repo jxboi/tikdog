@@ -29,7 +29,6 @@ import TikDogCore
 
 struct MyProfileView: View {
     @Environment(AppModel.self) private var app
-    @State private var showNewDog = false
     @State private var showSettings = false
     var body: some View {
         NavigationStack {
@@ -37,8 +36,8 @@ struct MyProfileView: View {
                 if let dog = app.selectedOwnDog { DogProfileView(dog: dog, isRoot: true).id(dog.id) }
                 else {
                     VStack(spacing: 24) {
-                        EmptyState(icon: "pawprint", title: "Every star starts somewhere.", message: "Give your dog a profile. The world is ready to meet them.").frame(maxHeight: 350)
-                        Button(app.snapshot.userId == nil ? "Join the pack" : "Meet my dog") { if app.requireMember() { showNewDog = true } }.buttonStyle(PrimaryButtonStyle()).padding(.horizontal, 40)
+                        EmptyState(icon: "pawprint", title: "Add your dog", message: "Create a profile to start sharing their videos.").frame(maxHeight: 350)
+                        Button(app.snapshot.userId == nil ? "Join the pack" : "Add my dog") { app.presentDogCreation() }.buttonStyle(PrimaryButtonStyle()).padding(.horizontal, 40)
                         Spacer()
                     }.padding(.top, 40).frame(maxWidth: .infinity).background(Color.dogCream)
                 }
@@ -47,12 +46,11 @@ struct MyProfileView: View {
                 ToolbarItem(placement: .topBarLeading) {
                     Menu {
                         ForEach(app.ownDogs) { dog in Button { app.selectedOwnDogId = dog.id } label: { Label(dog.name, systemImage: dog.id == app.selectedOwnDog?.id ? "checkmark" : "pawprint") } }
-                        Button { if app.requireMember() { showNewDog = true } } label: { Label("Add a dog", systemImage: "plus") }
+                        Button { app.presentDogCreation() } label: { Label("Add a dog", systemImage: "plus") }
                     } label: { HStack(spacing: 7) { Text("My pack").font(.system(size: 16, weight: .bold, design: .rounded)); Image(systemName: "chevron.down").font(.system(size: 10, weight: .bold)) }.foregroundStyle(Color.dogInk) }.accessibilityIdentifier("packMenu")
                 }
-                ToolbarItem(placement: .topBarTrailing) { Button { showSettings = true } label: { Image(systemName: "line.3.horizontal").font(.system(size: 21)).foregroundStyle(Color.dogInk) }.accessibilityLabel("Settings") }
+                ToolbarItem(placement: .topBarTrailing) { Button { showSettings = true } label: { Image(systemName: "gearshape").font(.system(size: 21)).foregroundStyle(Color.dogInk) }.accessibilityLabel("Settings") }
             }
-            .sheet(isPresented: $showNewDog) { DogEditorView(dog: nil) { app.selectedOwnDogId = $0.id } }
             .sheet(isPresented: $showSettings) { SettingsView() }
         }.tint(.dogInk)
     }
@@ -60,6 +58,7 @@ struct MyProfileView: View {
 
 struct DogProfileView: View {
     @Environment(AppModel.self) private var app
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.dismiss) private var dismiss
     let dog: Dog
     var isRoot = false
@@ -68,30 +67,30 @@ struct DogProfileView: View {
     @State private var model = DogProfileViewModel()
     @State private var localVideo: Video?
     @State private var localAuth = false
+    @State private var reviewVideo: Video?
     private var current: Dog { app.snapshot.dogs.first { $0.id == dog.id } ?? dog }
     private var isOwner: Bool { current.ownerId == app.snapshot.userId }
     private var videos: [Video] { app.snapshot.videos.filter { $0.dogId == dog.id }.sorted { $0.createdAt > $1.createdAt } }
     var body: some View {
         ScrollView {
-            VStack(spacing: 21) {
-                VStack(spacing: 14) {
-                    ZStack(alignment: .bottomTrailing) {
-                        DogAvatar(dog: current, size: 112, ring: true).padding(5).background(.white, in: Circle())
-                        Image(systemName: "pawprint.fill").font(.system(size: 15)).foregroundStyle(Color.dogInk).padding(10).background(Color.dogOrange, in: Circle()).rotationEffect(.degrees(14)).offset(x: 1, y: -2)
-                    }.padding(.top, 20)
+            VStack(spacing: 16) {
+                VStack(spacing: 12) {
+                    DogAvatar(dog: current, size: 88).padding(.top, 12)
                     VStack(spacing: 6) {
-                        HStack(spacing: 6) { Text(current.name).font(.system(size: 34, weight: .bold, design: .rounded)).tracking(-1); if current.isFeatured { Image(systemName: "checkmark.seal.fill").font(.system(size: 17)).foregroundStyle(Color.dogOrange) } }
-                        Text(current.breed.uppercased()).font(.system(size: 10, weight: .semibold, design: .monospaced)).tracking(2).foregroundStyle(Color.dogMuted)
+                        Text(current.name).scaledFont(size: 30, weight: .bold, design: .rounded, relativeTo: .title).tracking(-0.8)
+                        Text(current.breed).font(.subheadline).foregroundStyle(Color.dogMuted)
                     }
-                    HStack(spacing: 0) {
+                    let statsLayout = dynamicTypeSize.isAccessibilitySize
+                        ? AnyLayout(VStackLayout(spacing: 16)) : AnyLayout(HStackLayout(spacing: 0))
+                    statsLayout {
                         stat("Videos", value: videos.count)
-                        Rectangle().fill(Color.dogInk.opacity(0.1)).frame(width: 1, height: 25)
+                        if !dynamicTypeSize.isAccessibilitySize { Rectangle().fill(Color.dogInk.opacity(0.1)).frame(width: 1, height: 25) }
                         stat("Followers", value: current.followerCount)
-                        Rectangle().fill(Color.dogInk.opacity(0.1)).frame(width: 1, height: 25)
+                        if !dynamicTypeSize.isAccessibilitySize { Rectangle().fill(Color.dogInk.opacity(0.1)).frame(width: 1, height: 25) }
                         stat("Following", value: isOwner ? app.snapshot.followingDogIds.count : current.followingCount)
                     }.padding(.vertical, 5).padding(.horizontal, 25)
                     if isOwner && current.moderationStatus != .ready { Label(current.moderationStatus == .pending ? "Profile awaiting review" : "Profile removed by moderation", systemImage: "shield").font(.caption).foregroundStyle(Color.dogMuted) }
-                    if !current.bio.isEmpty { Text(current.bio).scaledFont(size: 13).lineSpacing(5).multilineTextAlignment(.center).padding(.horizontal, 30) }
+                    if !current.bio.isEmpty { Text(current.bio).scaledFont(size: 15).lineSpacing(5).multilineTextAlignment(.center).padding(.horizontal, 30) }
                     if !current.birthday.isEmpty {
                         Label("Born \(birthday)", systemImage: "birthday.cake").font(.system(size: 11)).foregroundStyle(Color.dogMuted)
                     }
@@ -101,22 +100,24 @@ struct DogProfileView: View {
                         } else {
                             Button { if app.snapshot.userId == nil { localAuth = true } else { Task { await app.follow(current) } } } label: { Text(app.snapshot.followingDogIds.contains(dog.id) ? "Following ✓" : "Follow \(current.name)") }.buttonStyle(PrimaryButtonStyle(dark: app.snapshot.followingDogIds.contains(dog.id))).disabled(app.pendingActions.contains("follow-\(dog.id)"))
                         }
-                        ShareLink(item: "Meet \(current.name), a \(current.breed), on TikDog. \(current.bio)") { Image(systemName: "square.and.arrow.up").font(.system(size: 18, weight: .medium)).foregroundStyle(Color.dogInk).frame(width: 52, height: 51).background(.white, in: RoundedRectangle(cornerRadius: 18)) }.accessibilityLabel("Share dog profile")
                     }.padding(.horizontal, 26).padding(.top, 4)
                 }
                 HStack(spacing: 0) {
-                    galleryTab("Their little adventures", icon: "square.grid.3x3", saved: false)
+                    galleryTab("Videos", icon: "square.grid.3x3", saved: false)
                     if isOwner { galleryTab("Saved", icon: "bookmark", saved: true) }
                 }.padding(.top, 8).overlay(alignment: .bottom) { Rectangle().fill(Color.dogInk.opacity(0.06)).frame(height: 1) }
                 if model.isLoading && videos.isEmpty { ProgressView().padding(30) }
                 else if let loadError = model.error {
-                    VStack(spacing: 14) {
+                    VStack(spacing: 12) {
                         Text(loadError).font(.subheadline).foregroundStyle(.red).multilineTextAlignment(.center)
                         Button("Try again") { Task { await model.load(dogId: dog.id, app: app) } }.buttonStyle(PrimaryButtonStyle())
                     }.padding(24)
                 }
-                else if (savedTab ? app.savedVideos : videos).isEmpty { EmptyState(icon: savedTab ? "bookmark" : "video", title: savedTab ? "Keep the good stuff." : "A star in the making.", message: savedTab ? "Save videos you love and find them here." : "Their first adventure is just an upload away.") }
-                else { VideoGrid(videos: savedTab ? app.savedVideos : videos, onSelect: { localVideo = $0 }) }
+                else if (savedTab ? app.savedVideos : videos).isEmpty { EmptyState(icon: savedTab ? "bookmark" : "video", title: savedTab ? "No saved videos" : "No videos yet", message: savedTab ? "Videos you save will appear here." : (isOwner ? "Share your dog’s first video to get started." : "\(current.name)’s videos will appear here.")) }
+                else { VideoGrid(videos: savedTab ? app.savedVideos : videos, onSelect: {
+                    if isOwner && !savedTab && SubmissionVisibility(video: $0.moderationStatus, dog: current.moderationStatus) != .publicVideo { reviewVideo = $0 }
+                    else { localVideo = $0 }
+                }) }
             }.padding(.bottom, 20)
         }.background(Color.dogCream).foregroundStyle(Color.dogInk)
             .navigationBarTitleDisplayMode(.inline)
@@ -127,6 +128,7 @@ struct DogProfileView: View {
             .sheet(isPresented: $localAuth) { AuthView() }
             .fullScreenCover(item: $localVideo) { video in FeedView(standaloneVideos: savedTab ? app.savedVideos : videos, initialVideo: video.id, isStandalone: true).preferredColorScheme(.dark) }
             .sheet(isPresented: $editing) { DogEditorView(dog: current) }
+            .sheet(item: $reviewVideo) { SubmissionDetailView(videoId: $0.id) }
             .task(id: dog.id) { await model.load(dogId: dog.id, app: app) }
             .refreshable { await model.load(dogId: dog.id, app: app) }
     }
@@ -134,9 +136,9 @@ struct DogProfileView: View {
         let formatter = DateFormatter(); formatter.locale = Locale(identifier: "en_US_POSIX"); formatter.dateFormat = "yyyy-MM-dd"
         guard let date = formatter.date(from: current.birthday) else { return current.birthday }; return date.formatted(.dateTime.month(.abbreviated).day().year())
     }
-    private func stat(_ title: String, value: Int) -> some View { VStack(spacing: 5) { Text(value.compactCount).font(.system(size: 22, weight: .bold, design: .rounded)); Text(title).font(.system(size: 10)).foregroundStyle(Color.dogMuted) }.frame(maxWidth: .infinity) }
+    private func stat(_ title: String, value: Int) -> some View { VStack(spacing: 5) { Text(value.compactCount).scaledFont(size: 22, weight: .bold, design: .rounded, relativeTo: .title3); Text(title).font(.caption).foregroundStyle(Color.dogMuted) }.frame(maxWidth: .infinity) }
     private func galleryTab(_ title: String, icon: String, saved: Bool) -> some View {
-        Button { savedTab = saved; Haptics.selection() } label: { VStack(spacing: 14) { HStack(spacing: 7) { Image(systemName: icon).font(.system(size: 13)); Text(title).font(.system(size: 11, weight: .semibold)) }.foregroundStyle(savedTab == saved ? Color.dogInk : Color.dogMuted); Capsule().fill(savedTab == saved ? Color.dogOrange : .clear).frame(height: 3) }.frame(maxWidth: .infinity).frame(minHeight: 44) }.padding(.horizontal, 22).accessibilityAddTraits(savedTab == saved ? .isSelected : [])
+        Button { savedTab = saved; Haptics.selection() } label: { VStack(spacing: 12) { HStack(spacing: 7) { Image(systemName: icon).font(.system(size: 13)); Text(title).font(.subheadline.weight(.semibold)) }.foregroundStyle(savedTab == saved ? Color.dogInk : Color.dogMuted); Capsule().fill(savedTab == saved ? Color.dogOrange : .clear).frame(height: 3) }.frame(maxWidth: .infinity).frame(minHeight: 44) }.padding(.horizontal, 22).accessibilityAddTraits(savedTab == saved ? .isSelected : [])
     }
 }
 
@@ -150,7 +152,10 @@ struct VideoGrid: View {
                 Button { if let onSelect { onSelect(video) } else { app.selectedVideo = video } } label: {
                     GeometryReader { geometry in
                         MediaImage(path: video.displayThumbnailPath ?? video.thumbnailPath).frame(width: geometry.size.width, height: geometry.size.height).clipped()
-                            .overlay(alignment: .topLeading) { if video.moderationStatus != .ready { Text(video.moderationStatus == .pending ? "In review" : "Removed").font(.caption2.bold()).padding(6).background(.regularMaterial, in: Capsule()).padding(6) } }
+                            .overlay(alignment: .topLeading) {
+                                let visibility = SubmissionVisibility(video: video.moderationStatus, dog: app.dog(for: video)?.moderationStatus ?? .pending)
+                                if visibility != .publicVideo { Text(visibility == .removed ? "Removed" : "In review").font(.caption2.bold()).padding(6).background(.regularMaterial, in: Capsule()).padding(6) }
+                            }
                             .overlay(alignment: .bottomLeading) { Label(video.viewCount.compactCount, systemImage: "play").font(.system(size: 11, weight: .semibold)).foregroundStyle(.white).shadow(radius: 3).padding(9) }
                     }.aspectRatio(0.72, contentMode: .fit).clipped()
                 }.accessibilityLabel("Play \(video.caption)")
@@ -164,6 +169,7 @@ struct DogEditorView: View {
     @Environment(\.dismiss) private var dismiss
     let dog: Dog?
     let onSaved: ((Dog) -> Void)?
+    let saveTitle: String?
     @State private var name = ""
     @State private var breed = ""
     @State private var bio = ""
@@ -176,8 +182,9 @@ struct DogEditorView: View {
     @State private var error: String?
     @State private var confirmDiscard = false
 
-    init(dog: Dog?, onSaved: ((Dog) -> Void)? = nil) {
+    init(dog: Dog?, saveTitle: String? = nil, onSaved: ((Dog) -> Void)? = nil) {
         self.dog = dog
+        self.saveTitle = saveTitle
         self.onSaved = onSaved
         _name = State(initialValue: dog?.name ?? "")
         _breed = State(initialValue: dog?.breed ?? "")
@@ -212,20 +219,22 @@ struct DogEditorView: View {
                             if let currentPhotoData, let image = UIImage(data: currentPhotoData) { Image(uiImage: image).resizable().scaledToFill().frame(width: 90, height: 90).clipShape(Circle()) }
                             else if let dog { DogAvatar(dog: dog, size: 90) }
                             else { Image(systemName: "camera.fill").font(.system(size: 25)).foregroundStyle(Color.dogOrange).frame(width: 90, height: 90).background(Color.dogOrange.opacity(0.12), in: Circle()) }
-                            Text("Choose profile photo").font(.system(size: 12, weight: .semibold)).foregroundStyle(Color.dogInk)
+                            Text("Profile photo (optional)").font(.system(size: 12, weight: .semibold)).foregroundStyle(Color.dogInk)
                             if currentIsLoadingPhoto { ProgressView("Loading photo…").font(.caption) }
                         }; Spacer() }.padding(.vertical, 10)
                     }
                 }.listRowBackground(Color.clear)
                 Section("The star of the show") {
-                    TextField("Dog's name", text: $name).accessibilityIdentifier("dogNameInput")
-                    TextField("Breed (mixed breeds welcome)", text: $breed).accessibilityIdentifier("dogBreedInput")
-                    Toggle("Add birthday", isOn: $hasBirthday).tint(.dogOrange)
+                    TextField("Dog's name (required)", text: $name).accessibilityIdentifier("dogNameInput")
+                    TextField("Breed (required)", text: $breed).accessibilityIdentifier("dogBreedInput")
+                    Text("Mixed breeds are welcome. If you don't know the breed, enter Unknown.").font(.caption).foregroundStyle(Color.dogMuted)
+                    Toggle("Birthday (optional)", isOn: $hasBirthday).tint(.dogOrange)
                     if hasBirthday { DatePicker("Birthday", selection: $birthday, in: ...Date.now, displayedComponents: .date) }
-                    TextField("A little personality (160 characters)", text: $bio, axis: .vertical).lineLimit(3...5)
+                    TextField("Bio (optional, up to 160 characters)", text: $bio, axis: .vertical).lineLimit(3...5)
                 }
+                if savedName.isEmpty || savedBreed.isEmpty { Text("Add a name and breed to save your dog's profile.").font(.caption).foregroundStyle(Color.dogMuted) }
                 if let error { Section { Text(error).foregroundStyle(.red).font(.footnote) } }
-                Section { Button { Task { await save() } } label: { HStack { Spacer(); if saving { ProgressView() } else { Text(dog == nil ? "Welcome to the pack" : "Save profile").bold() }; Spacer() } }.disabled(!canSave).foregroundStyle(Color.dogInk) }.listRowBackground(Color.dogOrange.opacity(canSave ? 1 : 0.35))
+                Section { Button { Task { await save() } } label: { HStack { Spacer(); if saving { ProgressView() } else { Text(saveTitle ?? (dog == nil ? "Save dog" : "Save profile")).bold() }; Spacer() } }.disabled(!canSave).foregroundStyle(Color.dogInk).accessibilityIdentifier("saveDogProfile") }.listRowBackground(Color.dogOrange.opacity(canSave ? 1 : 0.35))
             }.disabled(saving).scrollDismissesKeyboard(.interactively).scrollContentBackground(.hidden).background(Color.dogCream).navigationTitle(dog == nil ? "Meet your dog" : "Edit profile").navigationBarTitleDisplayMode(.inline)
                 .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { if hasChanges { confirmDiscard = true } else { dismiss() } }.disabled(saving) } }
                 .interactiveDismissDisabled(saving || hasChanges)

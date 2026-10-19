@@ -112,20 +112,18 @@ struct FeedView: View {
     }
     private func feedHeader(top: CGFloat) -> some View {
         HStack(spacing: 0) {
-            HStack(spacing: 4) { Image(systemName: "pawprint.fill").font(.system(size: 16)); Text("tikdog").font(.system(size: 21, weight: .heavy, design: .rounded)).tracking(-1) }.foregroundStyle(.white)
-            Spacer(minLength: 16)
-            HStack(spacing: 22) {
+            Spacer(minLength: 0)
+            HStack(spacing: 28) {
                 feedTab("Following", kind: .following)
                 feedTab("For You", kind: .forYou)
-            }
-            Spacer(minLength: 16)
-            Button { app.selectedTab = .discover } label: { Image(systemName: "magnifyingglass").font(.system(size: 22, weight: .medium)).frame(width: 44, height: 44) }.accessibilityLabel("Search dogs")
+            }.dynamicTypeSize(...DynamicTypeSize.accessibility1)
+            Spacer(minLength: 0)
         }.padding(.horizontal, 20).padding(.top, top + 8).padding(.bottom, 24)
             .background(LinearGradient(colors: [.black.opacity(0.55), .clear], startPoint: .top, endPoint: .bottom))
     }
     private func feedTab(_ title: String, kind: FeedKind) -> some View {
         Button { Haptics.selection(); app.feedKind = kind } label: {
-            VStack(spacing: 8) { Text(title).font(.system(size: 14, weight: .bold)).foregroundStyle(app.feedKind == kind ? .white : .white.opacity(0.55)); Capsule().fill(app.feedKind == kind ? Color.dogOrange : .clear).frame(width: 23, height: 3) }.padding(.top, 12)
+            VStack(spacing: 8) { Text(title).font(.headline).foregroundStyle(app.feedKind == kind ? .white : .white.opacity(0.55)); Capsule().fill(app.feedKind == kind ? Color.dogOrange : .clear).frame(width: 23, height: 3) }.frame(minHeight: 44)
         }.accessibilityIdentifier("feed-\(kind.rawValue)").accessibilityAddTraits(app.feedKind == kind ? .isSelected : [])
     }
 }
@@ -187,21 +185,14 @@ private struct FeedCell: View {
         VStack(alignment: .leading, spacing: 11) {
             if let dog {
                 Button { app.selectedDog = dog } label: {
-                    HStack(spacing: 9) {
-                        Text(dog.name).font(.system(size: 27, weight: .bold, design: .rounded)).tracking(-0.8)
-                        if dog.isFeatured { Image(systemName: "checkmark.seal.fill").font(.system(size: 15)).foregroundStyle(Color.dogOrange) }
-                        Text(dog.breed.uppercased()).font(.system(size: 9, weight: .semibold, design: .monospaced)).tracking(1).padding(.horizontal, 8).padding(.vertical, 5).background(.white.opacity(0.15), in: Capsule())
-                    }
+                    Text(dog.name).scaledFont(size: 27, weight: .bold, design: .rounded, relativeTo: .title2).tracking(-0.8)
                 }.accessibilityIdentifier("feedDogName")
             }
             Text(video.caption).scaledFont(size: 15, weight: .medium).lineSpacing(4).lineLimit(3).shadow(color: .black.opacity(0.4), radius: 4, y: 1)
             Text(video.hashtags.map { "#\($0)" }.joined(separator: "  ")).scaledFont(size: 12, weight: .semibold, relativeTo: .caption).lineLimit(2).foregroundStyle(.white.opacity(0.8))
             HStack(spacing: 6) {
-                Image(systemName: "waveform").font(.system(size: 11))
-                Text("original sound · \(dog?.name.lowercased() ?? "tikdog")").font(.system(size: 11, weight: .medium))
-                Spacer(minLength: 0)
-                Button { playback.toggleMute() } label: { Image(systemName: playback.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill").font(.system(size: 12)).frame(width: 44, height: 44).background(.white.opacity(0.12), in: Circle()) }.accessibilityLabel(playback.isMuted ? "Unmute video" : "Mute video")
-            }.foregroundStyle(.white.opacity(0.7))
+                Button { playback.toggleMute() } label: { Label(playback.isMuted ? "Sound off" : "Sound on", systemImage: playback.isMuted ? "speaker.slash.fill" : "speaker.wave.2.fill").font(.caption.weight(.medium)).padding(.horizontal, 12).frame(minHeight: 44).background(.white.opacity(0.12), in: Capsule()) }.accessibilityLabel(playback.isMuted ? "Unmute video" : "Mute video")
+            }.foregroundStyle(.white.opacity(0.7)).dynamicTypeSize(...DynamicTypeSize.accessibility1)
         }.padding(.bottom, 1)
     }
     private var actions: some View {
